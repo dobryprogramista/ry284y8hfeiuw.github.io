@@ -1,0 +1,533 @@
+﻿<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Windows XP — Emulator (z narratorem)</title>
+<style>
+  /* --- Styl: inspirowany Windows XP "Luna" --- */
+  :root{
+    --blue-1:#0b57a4;
+    --blue-2:#2e86c0;
+    --bg-top:#9fc9ee;
+    --bg-bottom:#7aa7d9;
+    --taskbar:#1f3b63;
+    --window-bg:#e9f4ff;
+    --title-active:#0b57a4;
+    --title-inactive:#6b9fc7;
+    --start-bg:linear-gradient(#f0f0f0,#d6d6d6);
+    --accent:#ffcc00;
+    font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:linear-gradient(var(--bg-top), var(--bg-bottom));}
+  /* Desktop */
+  .desktop{
+    height:calc(100% - 40px);
+    padding:18px;
+    display:flex;
+    gap:18px;
+    align-items:flex-start;
+  }
+  /* Icons area */
+  .icons{display:flex;flex-wrap:wrap;gap:12px;width:240px}
+  .icon{
+    width:88px;text-align:center;color:#03345b;cursor:pointer;user-select:none;
+    padding:6px;border-radius:6px;
+  }
+  .icon img{width:64px;height:64px;display:block;margin:0 auto 6px;border-radius:6px;background:white;padding:6px;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+  .icon label{display:block;font-size:13px}
+  .icon:focus, .icon:active{outline:2px solid rgba(0,0,0,.2);background:rgba(255,255,255,.4)}
+  /* Work area */
+  .workarea{flex:1}
+  /* Window */
+  .window{
+    width:540px;background:var(--window-bg);border:2px solid #7aa7d9;border-radius:6px;
+    box-shadow: 0 12px 28px rgba(0,0,0,.35);
+    position:relative;margin-bottom:18px;overflow:hidden;
+  }
+  .titlebar{
+    height:30px;background:linear-gradient(var(--title-active), var(--blue-2));color:white;padding:4px 8px;display:flex;align-items:center;justify-content:space-between;
+    font-weight:700;
+  }
+  .titlebar.inactive{background:linear-gradient(var(--title-inactive), #7aa7d9);color:#eef6ff}
+  .titlebar .controls button{margin-left:6px;border:none;background:transparent;color:white;cursor:pointer;font-weight:700;padding:4px 6px;border-radius:4px}
+  .content{padding:12px;color:#03345b}
+  .window.hidden{display:none}
+  /* Taskbar */
+  .taskbar{
+    height:40px;background:var(--taskbar);color:white;display:flex;align-items:center;padding:6px 10px;position:fixed;left:0;right:0;bottom:0;
+    gap:12px;box-sizing:border-box;border-top:3px solid rgba(0,0,0,.15);
+  }
+  .startbtn{
+    background:var(--start-bg);color:#03284a;border-radius:6px;padding:6px 10px;display:flex;align-items:center;gap:8px;cursor:pointer;
+    box-shadow:0 1px 0 rgba(255,255,255,.5) inset;border:1px solid #999;
+  }
+  .startbtn img{width:18px;height:18px}
+  .taskbar .task-items{display:flex;gap:8px;flex:1;align-items:center}
+  .task-item{background:#f2f2f2;color:#03284a;padding:6px 10px;border-radius:4px;cursor:pointer;border:1px solid rgba(0,0,0,.08)}
+  .task-item.active{background:#ffe88a}
+  /* Start Menu */
+  .start-menu{
+    position:fixed;left:10px;bottom:50px;width:260px;background:var(--window-bg);border:2px solid #7aa7d9;border-radius:6px;padding:8px;box-shadow:0 12px 30px rgba(0,0,0,.35);display:none;
+  }
+  .start-menu h4{margin:6px 0;font-size:14px}
+  .start-menu button{width:100%;text-align:left;padding:8px;border:none;background:transparent;border-radius:4px;cursor:pointer}
+  .start-menu button:hover{background:rgba(0,0,0,.04)}
+  /* Settings modal */
+  .modal{
+    position:fixed;right:18px;bottom:60px;width:360px;background:var(--window-bg);border:2px solid #7aa7d9;border-radius:8px;padding:10px;box-shadow:0 10px 30px rgba(0,0,0,.45);display:none;
+  }
+  .field{margin:8px 0;display:flex;align-items:center;gap:8px}
+  label{font-size:14px}
+  select,input[type="range"]{padding:6px;border-radius:6px;border:1px solid #c7ddea;background:white}
+  .small{font-size:12px;color:#044}
+  .sr-only{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
+  /* Accessibility focus style */
+  button:focus, .startbtn:focus, .icon:focus, .task-item:focus{outline:3px solid rgba(0,123,255,.25);outline-offset:2px}
+  /* Responsive */
+  @media (max-width:800px){.window{width:100%}}
+</style>
+</head>
+<body>
+  <div class="desktop" id="desktop" role="application" aria-label="Emulator Windows XP">
+    <div class="icons" id="icons">
+      <div class="icon" id="ic-mycomp" tabindex="0" data-label="Mój komputer" role="button" aria-pressed="false">
+        <img alt="" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect width='64' height='48' y='8' rx='6' fill='%23ffffff' stroke='%23033' stroke-width='2'/><circle cx='12' cy='28' r='4' fill='%23033' /><rect x='44' y='26' width='10' height='7' rx='2' fill='%23033' /></svg>">
+        <label>Mój komputer</label>
+      </div>
+      <div class="icon" id="ic-recycle" tabindex="0" data-label="Kosz" role="button">
+        <img alt="" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><rect x='14' y='12' width='36' height='36' rx='6' fill='%23fff' stroke='%23033' stroke-width='2'/><path d='M22 22h20v4H22z' fill='%23033'/></svg>">
+        <label>Kosz</label>
+      </div>
+      <div class="icon" id="ic-browser" tabindex="0" data-label="Przeglądarka" role="button">
+        <img alt="" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><circle cx='32' cy='32' r='28' fill='%23fff' stroke='%23033' stroke-width='2'/><path d='M32 12 A20 20 0 0 1 52 32' stroke='%23033' stroke-width='3' fill='none'/></svg>">
+        <label>Przeglądarka</label>
+      </div>
+    </div>
+
+    <div class="workarea" id="workarea" aria-live="polite">
+      <!-- Pierwsze okno -->
+      <div class="window" id="window-main" role="dialog" aria-label="Mój program">
+        <div class="titlebar" id="title-main" role="toolbar" tabindex="0">
+          <div class="title">Mój program</div>
+          <div class="controls" aria-hidden="true">
+            <button id="wmin" title="Minimalizuj" aria-label="Minimalizuj okno">—</button>
+            <button id="wmax" title="Maksymalizuj" aria-label="Maksymalizuj okno">▢</button>
+            <button id="wclose" title="Zamknij" aria-label="Zamknij okno">✕</button>
+          </div>
+        </div>
+        <div class="content">
+          <p id="welcome" tabindex="0">Witaj w emulatorze Windows XP. Ten interfejs symuluje system: kliknij Start, otwórz okno lub najedź na elementy, a narrator przeczyta ich nazwy (jeśli jest włączony).</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button id="btnStartTask" data-label="Start zadania">Start zadania</button>
+            <button id="btnHelp" data-label="Pomoc">Pomoc</button>
+            <button id="btnSettings" data-label="Ustawienia">Ustawienia</button>
+            <button id="btnExit" data-label="Wyjście">Wyjście</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Drugie okno demo -->
+      <div class="window" id="window-notes" role="dialog" aria-label="Notatnik" style="width:380px">
+        <div class="titlebar inactive" id="title-notes" role="toolbar" tabindex="0">
+          <div class="title">Notatnik</div>
+          <div class="controls" aria-hidden="true">
+            <button class="wmin" title="Minimalizuj">—</button>
+            <button class="wmax" title="Maksymalizuj">▢</button>
+            <button class="wclose" title="Zamknij">✕</button>
+          </div>
+        </div>
+        <div class="content">
+          <textarea id="notes" style="width:100%;height:120px;border-radius:6px;padding:8px;border:1px solid #cfe0f3">To jest notatnik w emulatorze. Narrator może czytać przy focusie lub po kliknięciu.</textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Start menu -->
+  <div class="start-menu" id="startMenu" role="menu" aria-hidden="true">
+    <h4>Menu Start</h4>
+    <button data-action="openPrograms" role="menuitem">Programy</button>
+    <button data-action="openDocs" role="menuitem">Dokumenty</button>
+    <button data-action="openSettings" role="menuitem">Ustawienia</button>
+    <button data-action="shutdown" role="menuitem">Wyłącz</button>
+  </div>
+
+  <!-- Taskbar -->
+  <div class="taskbar" role="navigation" aria-label="Pasek zadań">
+    <div class="startbtn" id="startBtn" tabindex="0" aria-haspopup="true" aria-controls="startMenu">
+      <img alt="" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16'><rect width='6' height='6' fill='%23033'/><rect x='6' y='6' width='6' height='6' fill='%23033'/><rect x='6' width='6' height='6' fill='%23033'/><rect y='6' width='6' height='6' fill='%23033'/></svg>">
+      <span>Start</span>
+    </div>
+    <div class="task-items" id="taskItems" aria-hidden="false"></div>
+    <div id="tray" class="small" aria-live="polite">Gotowy</div>
+  </div>
+
+  <!-- Settings modal -->
+  <div class="modal" id="modalSettings" role="dialog" aria-label="Ustawienia narratora">
+    <h3>Ustawienia narratora</h3>
+    <div class="field">
+      <label for="narrOn">Narrator</label>
+      <input type="checkbox" id="narrOn" />
+    </div>
+    <div class="field">
+      <label for="narrHover">Czytaj przy najechaniu / focus</label>
+      <input type="checkbox" id="narrHover" />
+    </div>
+    <div class="field">
+      <label for="narrClick">Czytaj przy kliknięciu</label>
+      <input type="checkbox" id="narrClick" />
+    </div>
+    <div class="field">
+      <label for="voiceSel">Głos</label>
+      <select id="voiceSel" aria-label="Wybierz głos"></select>
+    </div>
+    <div class="field">
+      <label for="rate">Tempo</label>
+      <input id="rate" type="range" min="0.6" max="2" step="0.1" value="1" />
+      <span id="rateLabel" class="small">1.0</span>
+    </div>
+    <div style="margin-top:8px;display:flex;gap:8px">
+      <button id="saveBtn">Zapisz</button>
+      <button id="closeBtn">Zamknij</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+    <div class="small" style="margin-top:8px">Parametr URL: <code>?narrator=true</code> lub <code>?narrator=false</code> — ma priorytet nad ustawieniami.</div>
+  </div>
+
+  <div class="sr-only" id="srStatus" aria-live="polite"></div>
+
+<script>
+/* -------------------------
+   Emulator XP + Narrator
+   - narrator reads UI elements (hover/focus/click)
+   - ?narrator=true|false forces state (blocks UI toggle)
+   - prefs saved to localStorage
+   ------------------------- */
+
+const synth = window.speechSynthesis;
+let voices = [];
+function populateVoices(){
+  voices = synth.getVoices ? synth.getVoices() : [];
+  const sel = document.getElementById('voiceSel');
+  sel.innerHTML = '';
+  if(!voices.length){
+    const opt = document.createElement('option'); opt.textContent = 'Brak głosów'; sel.appendChild(opt); return;
+  }
+  voices.forEach((v,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=`${v.name} — ${v.lang}${v.default? ' (domyślny)':''}`; sel.appendChild(o); });
+  const saved = localStorage.getItem('xp.voiceIndex');
+  if(saved !== null && sel.options[saved]) sel.selectedIndex = saved;
+}
+if(synth && typeof synth.onvoiceschanged !== 'undefined') synth.onvoiceschanged = populateVoices;
+populateVoices();
+
+// Helpers: URL param
+function getUrlParam(){
+  try{
+    const p = new URLSearchParams(location.search).get('narrator');
+    if(p===null) return null;
+    if(p==='true') return true;
+    if(p==='false') return false;
+    return null;
+  }catch(e){ return null; }
+}
+const urlForced = getUrlParam();
+
+// Elements
+const narrOn = document.getElementById('narrOn');
+const narrHover = document.getElementById('narrHover');
+const narrClick = document.getElementById('narrClick');
+const voiceSel = document.getElementById('voiceSel');
+const rate = document.getElementById('rate');
+const rateLabel = document.getElementById('rateLabel');
+const modalSettings = document.getElementById('modalSettings');
+const btnSettings = document.getElementById('btnSettings');
+const startBtn = document.getElementById('startBtn');
+const startMenu = document.getElementById('startMenu');
+const tray = document.getElementById('tray');
+const srStatus = document.getElementById('srStatus');
+const taskItems = document.getElementById('taskItems');
+
+// Load / save prefs
+function loadPrefs(){
+  // defaults
+  const p = {
+    enabled: localStorage.getItem('xp.narrator.enabled') === 'true',
+    hover: localStorage.getItem('xp.narrator.hover') === 'true',
+    click: localStorage.getItem('xp.narrator.click') === 'true',
+    voiceIndex: localStorage.getItem('xp.voiceIndex'),
+    rate: localStorage.getItem('xp.rate') || '1'
+  };
+  // If URL param present, force enabled and disable UI toggle (inform user)
+  if(urlForced !== null) p.enabled = urlForced;
+  narrOn.checked = p.enabled;
+  narrHover.checked = p.hover;
+  narrClick.checked = p.click;
+  rate.value = p.rate;
+  rateLabel.textContent = parseFloat(rate.value).toFixed(1);
+  if(p.voiceIndex !== null){
+    try{ voiceSel.selectedIndex = p.voiceIndex; } catch(e){}
+  }
+  updateTray(p.enabled ? 'Narrator: włączony' : 'Narrator: wyłączony');
+}
+function savePrefs(){
+  // Respect URL forcing: if url forces, do not overwrite enabled in storage
+  if(urlForced === null) localStorage.setItem('xp.narrator.enabled', narrOn.checked);
+  localStorage.setItem('xp.narrator.hover', narrHover.checked);
+  localStorage.setItem('xp.narrator.click', narrClick.checked);
+  localStorage.setItem('xp.voiceIndex', voiceSel.selectedIndex);
+  localStorage.setItem('xp.rate', rate.value);
+}
+
+// Utility: speak only if enabled
+function isNarratorOn(){
+  if(urlForced !== null) return urlForced;
+  return narrOn.checked;
+}
+function updateTray(msg){
+  tray.textContent = msg;
+  srStatus.textContent = msg;
+}
+
+// Speech actions
+let currentUtterance = null;
+function speak(text){
+  if(!synth) return;
+  if(!isNarratorOn()) return;
+  if(!text || !text.trim()) return;
+  synth.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  const vi = parseInt(voiceSel.value);
+  if(!isNaN(vi) && voices[vi]) u.voice = voices[vi];
+  u.rate = parseFloat(rate.value) || 1;
+  u.onstart = ()=> updateTray('Mówię: ' + (text.length>30 ? text.slice(0,30)+'…' : text));
+  u.onend = ()=> updateTray('Gotowe');
+  u.onerror = ()=> updateTray('Błąd odtwarzania');
+  currentUtterance = u;
+  synth.speak(u);
+}
+function cancelSpeak(){ if(synth) synth.cancel(); currentUtterance = null; }
+
+// Normalize label of element
+function getLabel(el){
+  if(!el) return '';
+  if(el.dataset && el.dataset.label) return el.dataset.label;
+  if(el.getAttribute && el.getAttribute('aria-label')) return el.getAttribute('aria-label');
+  if(el.tagName === 'IMG' && el.alt) return el.alt;
+  if(el.title) return el.title;
+  const txt = el.textContent || el.value || '';
+  return txt.trim().split('\n')[0];
+}
+
+// Attach interactive reading to many controls
+function attachReaders(){
+  const selectors = 'button, [role="button"], .icon, [data-label], textarea, input, [role="menuitem"], .titlebar';
+  const elems = document.querySelectorAll(selectors);
+  elems.forEach(el=>{
+    // hover/focus - announce (if enabled)
+    el.addEventListener('mouseenter', () => {
+      if(narrHover.checked && isNarratorOn()) {
+        const lbl = getLabel(el);
+        if(lbl) speak(lbl);
+      }
+    });
+    el.addEventListener('focus', () => {
+      if(narrHover.checked && isNarratorOn()) {
+        const lbl = getLabel(el);
+        if(lbl) speak(lbl);
+      }
+    });
+    // click - announce click action
+    el.addEventListener('click', (e) => {
+      if(narrClick.checked && isNarratorOn()) {
+        const lbl = getLabel(el);
+        speak('Kliknięto ' + (lbl || 'element'));
+      }
+    });
+  });
+}
+
+// Basic actions: open/close windows and task items
+function registerWindowControls(){
+  // helpers to create taskbar button
+  function addTaskItem(id, title){
+    let existing = document.getElementById('task-'+id);
+    if(existing) { existing.classList.add('active'); return; }
+    const btn = document.createElement('button');
+    btn.id = 'task-'+id; btn.className = 'task-item active'; btn.textContent = title;
+    btn.addEventListener('click', () => {
+      const w = document.getElementById(id);
+      if(!w) return;
+      if(w.classList.contains('hidden')) { w.classList.remove('hidden'); btn.classList.add('active'); speak(title + ' przywrócone'); }
+      else { w.classList.add('hidden'); btn.classList.remove('active'); speak(title + ' zminimalizowane'); }
+    });
+    taskItems.appendChild(btn);
+  }
+  function removeTaskItem(id){
+    const el = document.getElementById('task-'+id);
+    if(el) el.remove();
+  }
+
+  // main window controls
+  document.getElementById('wclose').addEventListener('click', ()=>{
+    document.getElementById('window-main').classList.add('hidden'); removeTaskItem('window-main'); speak('Zamknięto okno');
+  });
+  document.getElementById('wmin').addEventListener('click', ()=>{
+    document.getElementById('window-main').classList.add('hidden'); addTaskItem('window-main', 'Mój program'); speak('Minimalizowanie okna');
+  });
+  document.getElementById('wmax').addEventListener('click', ()=>{
+    const w = document.getElementById('window-main');
+    if(w.style.width === '100%'){ w.style.width = ''; speak('Przywracam rozmiar'); }
+    else { w.style.width = '100%'; speak('Maksymalizowanie okna'); }
+  });
+
+  // notes window controls (delegated)
+  document.querySelectorAll('#window-notes .wclose').forEach(btn=>btn.addEventListener('click', (e)=>{
+    const w = btn.closest('.window'); w.classList.add('hidden'); removeTaskItem(w.id); speak('Zamknięto Notatnik');
+  }));
+  document.querySelectorAll('#window-notes .wmin').forEach(btn=>btn.addEventListener('click', (e)=>{
+    const w = btn.closest('.window'); w.classList.add('hidden'); addTaskItem(w.id, 'Notatnik'); speak('Minimalizowanie Notatnika');
+  }));
+  document.querySelectorAll('#window-notes .wmax').forEach(btn=>btn.addEventListener('click', (e)=>{
+    const w = btn.closest('.window');
+    if(w.style.width === '100%'){ w.style.width = ''; speak('Przywracam Notatnik'); }
+    else{ w.style.width = '100%'; speak('Maksymalizowanie Notatnika'); }
+  }));
+
+  // create task items initially
+  addTaskItem('window-main', 'Mój program');
+  addTaskItem('window-notes', 'Notatnik');
+}
+
+// Icon interactions: double-click open window (simulate)
+function registerIcons(){
+  document.getElementById('ic-mycomp').addEventListener('dblclick', ()=>{
+    // open a dialog (alert) and speak
+    speak('Otwieram Mój komputer');
+    alert('Mój komputer — (demo)');
+  });
+  document.getElementById('ic-browser').addEventListener('dblclick', ()=>{
+    speak('Otwieram przeglądarkę');
+    window.open('about:blank','_blank');
+  });
+  document.getElementById('ic-recycle').addEventListener('dblclick', ()=>{
+    speak('Otwieram Kosz');
+    alert('Kosz jest pusty.');
+  });
+}
+
+// Start menu
+function registerStart(){
+  startBtn.addEventListener('click', (e)=>{
+    const visible = startMenu.style.display === 'block';
+    startMenu.style.display = visible ? 'none' : 'block';
+    startMenu.setAttribute('aria-hidden', visible ? 'true' : 'false');
+    speak(visible ? 'Zamykam menu Start' : 'Otwieram menu Start');
+  });
+  // start menu actions
+  startMenu.addEventListener('click', (e)=>{
+    const act = e.target.dataset.action;
+    if(!act) return;
+    if(act==='openSettings'){ openSettings(); }
+    if(act==='shutdown'){ speak('Wyłączanie systemu'); alert('Symulowane wyłączenie'); }
+    if(act==='openDocs'){ speak('Otwieram dokumenty'); alert('Dokumenty (demo)'); }
+    if(act==='openPrograms'){ speak('Otwieram listę programów'); alert('Programy (demo)'); }
+    startMenu.style.display = 'none';
+  });
+}
+
+// Buttons actions (Start task, Help, Settings, Exit)
+function registerAppButtons(){
+  document.getElementById('btnStartTask').addEventListener('click', ()=>{
+    speak('Start zadania');
+    alert('Zadanie uruchomione (demo)');
+  });
+  document.getElementById('btnHelp').addEventListener('click', ()=>{
+    speak('Otwieram pomoc');
+    alert('Pomoc: To jest emulator Windows XP.');
+  });
+  document.getElementById('btnSettings').addEventListener('click', openSettings);
+  document.getElementById('btnExit').addEventListener('click', ()=>{
+    speak('Wyjście z aplikacji');
+    updateTray('Aplikacja zamknięta');
+  });
+}
+
+// Settings modal open/save/reset
+function openSettings(){
+  modalSettings.style.display = 'block';
+  modalSettings.setAttribute('aria-hidden', 'false');
+  speak('Otwieram ustawienia');
+}
+document.getElementById('closeBtn').addEventListener('click', ()=>{
+  modalSettings.style.display = 'none';
+  modalSettings.setAttribute('aria-hidden', 'true');
+});
+document.getElementById('saveBtn').addEventListener('click', ()=>{
+  savePrefs();
+  modalSettings.style.display = 'none';
+  speak('Ustawienia zapisane');
+});
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  localStorage.removeItem('xp.narrator.enabled');
+  localStorage.removeItem('xp.narrator.hover');
+  localStorage.removeItem('xp.narrator.click');
+  localStorage.removeItem('xp.voiceIndex');
+  localStorage.removeItem('xp.rate');
+  loadPrefs(); populateVoices();
+  speak('Ustawienia zresetowane');
+});
+
+// Keyboard shortcuts: N toggles narrator (unless URL forces)
+window.addEventListener('keydown', (e)=>{
+  if(e.key.toLowerCase() === 'n' && !/input|textarea/i.test(document.activeElement.tagName)){
+    if(urlForced === null){
+      narrOn.checked = !narrOn.checked;
+      savePrefs();
+      speak(narrOn.checked ? 'Narrator włączony' : 'Narrator wyłączony');
+      updateTray(narrOn.checked ? 'Narrator: włączony' : 'Narrator: wyłączony');
+    } else {
+      speak('Stan narratora jest zablokowany przez parametr URL');
+    }
+  }
+});
+
+// rate slider update
+rate.addEventListener('input', ()=> rateLabel.textContent = parseFloat(rate.value).toFixed(1));
+
+// Initialize all
+function init(){
+  loadPrefs();
+  populateVoices();
+  attachReaders();
+  registerWindowControls();
+  registerIcons();
+  registerStart();
+  registerAppButtons();
+
+  // Announce forced state if present
+  if(urlForced !== null){
+    speak(urlForced ? 'Narrator wymuszony włączony przez parametr URL' : 'Narrator wymuszony wyłączony przez parametr URL');
+  }
+
+  // Greet on load if narrator on
+  window.addEventListener('load', ()=>{
+    if(isNarratorOn()){
+      setTimeout(()=> speak('Witaj. Emulator Windows XP jest gotowy. Naciśnij N aby włączyć lub wyłączyć narratora.'), 300);
+    }
+  });
+
+  // Ensure settings values reflect current voices once loaded
+  setTimeout(()=> populateVoices(), 500);
+}
+
+// Save prefs on unload
+window.addEventListener('beforeunload', savePrefs);
+
+// Run init
+init();
+
+</script>
+</body>
+</html>
